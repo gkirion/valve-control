@@ -1,3 +1,5 @@
+#define MOTOR_PIN 2
+
 enum Status {
   ON = 1, OFF = 0
 };
@@ -9,10 +11,10 @@ struct Valve {
 };
 
 Valve valves[] = {
-  {2, OFF, 1800},
   {3, OFF, 1800},
-  {4, OFF, 1200},
-  {5, OFF, 1800}
+  {4, OFF, 1800},
+  {5, OFF, 1200},
+  {6, OFF, 1800}
 };
 
 int currentValve = 0;
@@ -23,10 +25,12 @@ int irrigationPeriodMinutes = 18000;
 Status irrigationStatus = OFF;
 
 void setup() {
+  pinMode(MOTOR_PIN, OUTPUT);
   for (int i = 0; i < numberOfValves; i++) { // set all control pins as output
     pinMode(valves[i].pin, OUTPUT);
   }
 
+  stopMotor();
   for (int i = 0; i < numberOfValves; i++) { // close all valves
     closeValve(i);
   }
@@ -88,12 +92,22 @@ void loop() {
 
 void startIrrigation() {
   irrigationStartTime = millis();
+  startMotor();
   irrigationStatus = ON;
   currentValve = 0;
 }
 
 void stopIrrigation() {
+  stopMotor();
   irrigationStatus = OFF;
+}
+
+void startMotor() {
+  digitalWrite(MOTOR_PIN, HIGH);
+}
+
+void stopMotor() {
+  digitalWrite(MOTOR_PIN, LOW);
 }
 
 void openValve(int index) {
