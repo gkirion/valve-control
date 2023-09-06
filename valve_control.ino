@@ -121,7 +121,7 @@ int parseInput() {
     char command = tokens[0].charAt(0);
     int stopIndex = 0;
     for (int i = 1; i < index; i = i + 2) {
-       stops[stopIndex].valveIndex = tokens[i].toInt();
+       stops[stopIndex].valveIndex = tokens[i].toInt() - 1; // valve 1 is at index 0 and so on...
        stops[stopIndex].durationOpenMinutes = tokens[i + 1].toInt();
        stopIndex++;
     }
