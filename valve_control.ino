@@ -7,22 +7,35 @@ enum Status {
 struct Valve {
   const int pin;
   Status state;
+};
+
+
+struct Stop {
+  int valveIndex;
   int durationOpenMinutes;
 };
 
 Valve valves[] = {
-  {3, OFF, 1800},
-  {4, OFF, 1800},
-  {5, OFF, 1200},
-  {6, OFF, 1800}
+  {3, OFF},
+  {4, OFF},
+  {5, OFF},
+  {6, OFF}
 };
 
-int currentValve = 0;
+
 int numberOfValves = sizeof(valves) / sizeof(Valve);
 unsigned long irrigationStartTime = 0;
 unsigned long valveOpenTime = 0;
 int irrigationPeriodMinutes = 18000;
 Status irrigationStatus = OFF;
+Stop stops[16] = {
+  {0, 2800},
+  {1, 2800},
+  {2, 1200},
+  {3, 3800}
+};
+int numberOfStops = 4;
+int currentStop = 0;
 
 void setup() {
   pinMode(MOTOR_PIN, OUTPUT);
@@ -45,15 +58,16 @@ void loop() {
     startIrrigation();
   }
 
+  int currentValve = stops[currentStop].valveIndex;
   if (irrigationStatus == ON) {
     if (valves[currentValve].state == OFF) {
       openValve(currentValve);
     }
     timeElapsed = millis() - valveOpenTime;
-    if (timeElapsed > valves[currentValve].durationOpenMinutes) {
+    if (timeElapsed > stops[currentStop].durationOpenMinutes) {
       closeValve(currentValve);
-      currentValve++; // proceed to next valve
-      if (currentValve == numberOfValves) {
+      currentStop++; // proceed to next valve
+      if (currentStop == numberOfStops) {
         stopIrrigation();
       }
     }
@@ -63,9 +77,7 @@ void loop() {
   delay(1000);
 
   if (Serial.available() > 0) {
-    String input = Serial.readStringUntil('\n');
-    input = input.substring(0, input.length() - 1); // strip carriage return
-    int newStatus = input.toInt();
+    int newStatus = parseInput();
     switch (newStatus) {
 
       case ON:
@@ -78,6 +90,7 @@ void loop() {
       case OFF:
         if (irrigationStatus == ON) {
           Serial.println("setting status to: OFF");
+          int currentValve = stops[currentStop].valveIndex;
           closeValve(currentValve);
           stopIrrigation();
         }
@@ -90,11 +103,39 @@ void loop() {
   }
 }
 
+int parseInput() {
+    String tokens[16];
+    String input = Serial.readStringUntil('\n');
+    input = input.substring(0, input.length() - 1); // strip carriage return
+    int index = 0;
+    int previousSpaceIndex = 0;
+    int spaceIndex = input.indexOf(' ');
+    while (spaceIndex != -1) {
+      tokens[index] = input.substring(previousSpaceIndex, spaceIndex);
+      previousSpaceIndex = spaceIndex;
+      spaceIndex = input.indexOf(' ', spaceIndex + 1);
+      index++;
+    }
+    tokens[index] = input.substring(previousSpaceIndex);
+    index++;
+    char command = tokens[0].charAt(0);
+    int stopIndex = 0;
+    for (int i = 1; i < index; i = i + 2) {
+       stops[stopIndex].valveIndex = tokens[i].toInt();
+       stops[stopIndex].durationOpenMinutes = tokens[i + 1].toInt();
+       stopIndex++;
+    }
+    if (stopIndex > 0) {
+      numberOfStops = stopIndex;
+    }
+    return command - '0';
+}
+
 void startIrrigation() {
   irrigationStartTime = millis();
   startMotor();
   irrigationStatus = ON;
-  currentValve = 0;
+  currentStop = 0;
 }
 
 void stopIrrigation() {
