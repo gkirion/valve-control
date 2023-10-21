@@ -1,3 +1,4 @@
+#define PLACE_NAME "kipos"
 #define MOTOR_PIN 2
 
 enum Status {
@@ -73,7 +74,7 @@ void loop() {
     }
   }
 
-  printValvesStatus();
+  printStatus();
   delay(1000);
 
   if (Serial.available() > 0) {
@@ -82,14 +83,12 @@ void loop() {
 
       case ON:
         if (irrigationStatus == OFF) {
-          Serial.println("setting status to: ON");
           startIrrigation();
         }
         break;
 
       case OFF:
         if (irrigationStatus == ON) {
-          Serial.println("setting status to: OFF");
           int currentValve = stops[currentStop].valveIndex;
           closeValve(currentValve);
           stopIrrigation();
@@ -162,11 +161,10 @@ void closeValve(int index) {
   valves[index].state = OFF;
 }
 
-void printValvesStatus() {
-  String output = "";
-  for (int i = 0; i < numberOfValves; i++) {
-    String status = valves[i].state == ON ? "ON" : "OFF";
-    output = output + status + ",";
+void printStatus() {
+  if (irrigationStatus == ON) {
+    Serial.println(currentStop + 1);
+  } else {
+    Serial.println(-1);
   }
-  Serial.println(output.substring(0, output.length() - 1));
 }
